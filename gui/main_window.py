@@ -108,9 +108,19 @@ class TAManagementSystem:
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
         )
         if file_path:
+            self.root.config(cursor="watch")
+        self.root.update_idletasks()
+        try:
             self.manager.load_candidates(file_path)
             self.refresh_treeview()
-            messagebox.showinfo("Success", f"Loaded candidates from CSV.")
+            # messagebox.showinfo("Success", f"Loaded candidates from CSV.")
+        finally:
+            # Restore default cursor
+            self.root.config(cursor="")
+            self.root.update_idletasks()
+            # self.manager.load_candidates(file_path)
+            # self.refresh_treeview()
+            # messagebox.showinfo("Success", f"Loaded candidates from CSV.")
 
     def refresh_treeview(self):
         # Clear all treeviews
@@ -147,7 +157,8 @@ class TAManagementSystem:
         tree['columns'] = available_cols
         tree['show'] = 'headings'
         for col in available_cols:
-            tree.heading(col, text=col)
+            # tree.heading(col, text=col)
+            tree.heading(col, text=col, command=lambda _col=col, _tree=tree: self.on_treeview_column_click(_tree, _col))
             tree.column(col, width=120)
 
     def populate_tree(self, tree, df):
@@ -279,6 +290,41 @@ class TAManagementSystem:
         try:
             load_state(self.manager)
             self.refresh_treeview()
-            messagebox.showinfo("Success", "State loaded successfully")
+            # messagebox.showinfo("Success", "State loaded successfully")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load state: {str(e)}")
+
+    def on_treeview_column_click(self, tree, col):
+        # Determine which DataFrame to sort
+        if tree == self.main_tree:
+            df = self.manager.candidates
+            # Toggle sort order
+            ascending = getattr(self, 'main_tree_sort_ascending', {}).get(col, True)
+            self.manager.candidates = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
+            self.refresh_treeview()
+            # Store the toggled order for next click
+            if not hasattr(self, 'main_tree_sort_ascending'):
+                self.main_tree_sort_ascending = {}
+            self.main_tree_sort_ascending[col] = not ascending
+        elif tree == self.dismissed_tree:
+            df = self.manager.dismissed_candidates
+            ascending = getattr(self, 'dismissed_tree_sort_ascending', {}).get(col, True)
+            self.manager.dismissed_candidates = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
+            self.refresh_treeview()
+            if not hasattr(self, 'dismissed_tree_sort_ascending'):
+                self.dismissed_tree_sort_ascending = {}
+            self.dismissed_tree_sort_ascending[col] = not ascending
+        else:
+            # For hired trees
+            for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
+                tree_name = f"{decision.lower().replace(' ', '_').replace("'", '')}_tree"
+                if hasattr(self, tree_name) and tree == getattr(self, tree_name):
+                    df = self.manager.hired_candidates[decision]
+                    attr_name = f"{tree_name}_sort_ascending"
+                    ascending = getattr(self, attr_name, {}).get(col, True)
+                    self.manager.hired_candidates[decision] = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
+                    self.refresh_treeview()
+                    if not hasattr(self, attr_name):
+                        setattr(self, attr_name, {})
+                    getattr(self, attr_name)[col] = not ascending
+                    break
