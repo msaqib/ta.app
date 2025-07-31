@@ -1,4 +1,5 @@
 import tkinter as tk
+import pandas as pd
 from tkinter import ttk, filedialog, messagebox, simpledialog
 from models.candidate import CandidateManager
 from services.persistence import load_candidates_csv, save_state, load_state
@@ -35,6 +36,15 @@ class TAManagementSystem:
     def create_main_tab(self):
         control_frame = ttk.Frame(self.main_frame)
         control_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        # --- Add search box ---
+        search_label = ttk.Label(control_frame, text="Search:")
+        search_label.pack(side=tk.LEFT, padx=(0, 2))
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(control_frame, textvariable=self.search_var)
+        search_entry.pack(side=tk.LEFT, padx=(0, 10))
+        search_entry.bind("<KeyRelease>", self.on_search_change)
+        # --- End search box ---
 
         ttk.Button(control_frame, text="Load CSV", command=self.load_csv).pack(side=tk.LEFT, padx=5)
         ttk.Button(control_frame, text="Save State", command=self.save_state).pack(side=tk.LEFT, padx=5)
@@ -129,31 +139,48 @@ class TAManagementSystem:
                 tree = getattr(self, tree_name)
                 for item in tree.get_children():
                     tree.delete(item)
+        # --- Filter candidates for main treeview ---
+        df = self.manager.candidates
+        if hasattr(self, "search_var"):
+            search = self.search_var.get().strip().lower()
+            if search:
+                # Try to find columns for name and student ID
+                name_col = None
+                id_col = None
+                for col in df.columns:
+                    if "name" in col.lower():
+                        name_col = col
+                    if "roll" in col.lower() or "id" in col.lower():
+                        id_col = col
+                if name_col or id_col:
+                    mask = pd.Series([False] * len(df))
+                    if name_col:
+                        mask = mask | df[name_col].astype(str).str.lower().str.contains(search)
+                    if id_col:
+                        mask = mask | df[id_col].astype(str).str.lower().str.contains(search)
+                    df = df[mask]
+        # Setup columns and populate main tree
+        if not df.empty:
+            self.setup_tree_columns(self.main_tree, df)
+            self.populate_tree(self.main_tree, df)
+        # Populate hired candidate tabs
         for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
             tree_name = f"{decision.lower().replace(' ', '_').replace("'", '')}_tree"
             if hasattr(self, tree_name):
                 tree = getattr(self, tree_name)
+                # Clear the tree
                 for item in tree.get_children():
                     tree.delete(item)
-        # Setup columns and populate main tree
-        if not self.manager.candidates.empty:
-            self.setup_tree_columns(self.main_tree, self.manager.candidates)
-            self.populate_tree(self.main_tree, self.manager.candidates)
-        if not self.manager.dismissed_candidates.empty:
-            self.setup_tree_columns(self.dismissed_tree, self.manager.dismissed_candidates)
-            self.populate_tree(self.dismissed_tree, self.manager.dismissed_candidates)
-        for decision, df in self.manager.hired_candidates.items():
-            if not df.empty:
-                tree_name = f"{decision.lower().replace(' ', '_').replace("'", '')}_tree"
-                if hasattr(self, tree_name):
-                    tree = getattr(self, tree_name)
+                df = self.manager.hired_candidates[decision]
+                if not df.empty:
                     self.setup_tree_columns(tree, df)
                     self.populate_tree(tree, df)
 
     def setup_tree_columns(self, tree, df):
         tree['columns'] = ()
-        display_cols = self.manager.display_columns
-        available_cols = [col for col in display_cols if col in df.columns]
+        available_cols = list(df.columns)
+        # display_cols = self.manager.display_columns
+        # available_cols = [col for col in display_cols if col in df.columns]
         tree['columns'] = available_cols
         tree['show'] = 'headings'
         for col in available_cols:
@@ -253,8 +280,9 @@ class TAManagementSystem:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         details = ""
         for col in candidate.index:
-            if col not in ['Status']:
-                details += f"{col}: {candidate[col]}\n\n"
+            details += f"{col}: {candidate[col]}\n\n"
+            # if col not in ['Status']:
+            #     details += f"{col}: {candidate[col]}\n\n"
         text_widget.insert(tk.END, details)
         text_widget.config(state=tk.DISABLED)
 
@@ -328,3 +356,6 @@ class TAManagementSystem:
                         setattr(self, attr_name, {})
                     getattr(self, attr_name)[col] = not ascending
                     break
+
+    def on_search_change(self, event=None):
+        self.refresh_treeview()

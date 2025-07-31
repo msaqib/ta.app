@@ -10,17 +10,20 @@ class CandidateManager:
             'Weak Hire': pd.DataFrame(),
             "Don't Hire": pd.DataFrame()
         }
-        self.display_columns = [
-            'Full name', 'Roll number', 'Current CGPA', 'If you have declared a major, please specify', 'Grade in CS 200', 'Grade in CS 202 (if taken)',
-            'Would you be able to attend the lectures? MW 11 am to 12:15 pm', 'If you expect a clash with the lecture, please specify the day and duration and timing. For example, Wednesday: 30 minutes, 11 am to 11:30 am.',
-            'Would you be able to attend the lab? Fri 2 pm to 4:50 pm', 'If you have a clash with the lab, please specify the duration and timing. For example, 30 minutes 3 pm to 3:30 pm.',
-            'Mention any potential conflict of interest (Close friends, relatives, significant others). Otherwise, write "No"', 'If you have any prior experience TA\'ing, please mention which course. Otherwise, write "No"',
-            'Why do you wish to TA this course?', 'Interview Score', 'Decision'
-        ]
+        # self.display_columns = [
+        #     'Full name', 'Roll number', 'Current CGPA', 'If you have declared a major, please specify', 'Grade in CS 200', 'Grade in CS 202 (if taken)',
+        #     'Would you be able to attend the lectures? MW 11 am to 12:15 pm', 'If you expect a clash with the lecture, please specify the day and duration and timing. For example, Wednesday: 30 minutes, 11 am to 11:30 am.',
+        #     'Would you be able to attend the lab? Fri 2 pm to 4:50 pm', 'If you have a clash with the lab, please specify the duration and timing. For example, 30 minutes 3 pm to 3:30 pm.',
+        #     'Mention any potential conflict of interest (Close friends, relatives, significant others). Otherwise, write "No"', 'If you have any prior experience TA\'ing, please mention which course. Otherwise, write "No"',
+        #     'Why do you wish to TA this course?', 'Interview Score', 'Decision'
+        # ]
+
+        self.columns = []
 
     def load_candidates(self, file_path):
         df = pd.read_csv(file_path)
-        for col in self.display_columns:
+        self.columns = list(df.columns)
+        for col in self.columns:
             if col not in df.columns:
                 df[col] = ''
         df['Interview Score'] = ''
