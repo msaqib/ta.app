@@ -17,48 +17,55 @@ class TAManagementSystem:
         self.load_state()
 
     def create_widgets(self):
+        # Create control bar first
+        self.create_control_bar()
+
+        # Then create notebook
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Store tab indices
+        self.tab_indices = {}
 
-        self.tab_indices = {}  # Store tab indices for updating labels
-
+        # Create main tab
         self.main_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.main_frame, text="Available Candidates")
         self.tab_indices['main'] = self.main_frame
-        # self.notebook.add(self.main_frame, text="Available Candidates")
-        # self.tab_indices['main'] = self.main_frame
-        self.create_main_tab()
+        self.create_treeview(self.main_frame, "main")
+        self.create_context_menu()
 
+        # Create dismissed tab
         self.dismissed_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.dismissed_frame, text="Dismissed Candidates")
         self.tab_indices['dismissed'] = self.dismissed_frame
-        # dismissed_tab_idx = self.notebook.index(self.notebook.add(self.dismissed_frame, text="Dismissed Candidates"))
-        # self.tab_indices['dismissed'] = self.dismissed_frame
-        self.create_dismissed_tab()
+        self.create_treeview(self.dismissed_frame, "dismissed")
 
+        # Create hired tabs
         for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
             frame = ttk.Frame(self.notebook)
             self.notebook.add(frame, text=decision)
             self.tab_indices[decision] = frame
             self.create_hired_tab(frame, decision)
 
-    def create_main_tab(self):
-        control_frame = ttk.Frame(self.main_frame)
-        control_frame.pack(fill=tk.X, padx=5, pady=5)
+    def create_control_bar(self):
+        # Create main control frame above notebook
+        control_frame = ttk.Frame(self.root)
+        control_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
 
-        # --- Add search box ---
+        # Search box
         search_label = ttk.Label(control_frame, text="Search:")
         search_label.pack(side=tk.LEFT, padx=(0, 2))
         self.search_var = tk.StringVar()
         search_entry = ttk.Entry(control_frame, textvariable=self.search_var)
         search_entry.pack(side=tk.LEFT, padx=(0, 10))
         search_entry.bind("<KeyRelease>", self.on_search_change)
-        # --- End search box ---
 
+        # Buttons
         ttk.Button(control_frame, text="Load CSV", command=self.load_csv).pack(side=tk.LEFT, padx=5)
         ttk.Button(control_frame, text="Save State", command=self.save_state).pack(side=tk.LEFT, padx=5)
         ttk.Button(control_frame, text="Load State", command=self.load_state).pack(side=tk.LEFT, padx=5)
 
+        # Sort controls
         sort_frame = ttk.LabelFrame(control_frame, text="Sort by")
         sort_frame.pack(side=tk.LEFT, padx=20)
 
@@ -70,9 +77,6 @@ class TAManagementSystem:
             ttk.Checkbutton(sort_frame, text=option, variable=var).grid(row=0, column=i, padx=5)
 
         ttk.Button(sort_frame, text="Apply Sort", command=self.apply_sort).grid(row=0, column=len(sort_options), padx=10)
-
-        self.create_treeview(self.main_frame, "main")
-        self.create_context_menu()
 
     def create_dismissed_tab(self):
         control_frame = ttk.Frame(self.dismissed_frame)
@@ -155,42 +159,52 @@ class TAManagementSystem:
                 tree = getattr(self, tree_name)
                 for item in tree.get_children():
                     tree.delete(item)
-        # --- Filter candidates for main treeview ---
-        df = self.manager.candidates
-        if hasattr(self, "search_var"):
-            search = self.search_var.get().strip().lower()
-            if search:
-                # Try to find columns for name and student ID
-                name_col = None
-                id_col = None
-                for col in df.columns:
-                    if "name" in col.lower():
-                        name_col = col
-                    if "roll" in col.lower() or "id" in col.lower():
-                        id_col = col
-                if name_col or id_col:
-                    mask = pd.Series([False] * len(df))
-                    if name_col:
-                        mask = mask | df[name_col].astype(str).str.lower().str.contains(search)
-                    if id_col:
-                        mask = mask | df[id_col].astype(str).str.lower().str.contains(search)
-                    df = df[mask]
-        # Setup columns and populate main tree
+
+        # Function to filter dataframe based on search
+        def filter_df(df):
+            if hasattr(self, "search_var"):
+                search = self.search_var.get().strip().lower()
+                if search:
+                    name_col = None
+                    id_col = None
+                    for col in df.columns:
+                        if "name" in col.lower():
+                            name_col = col
+                        if "roll" in col.lower() or "id" in col.lower():
+                            id_col = col
+                    if name_col or id_col:
+                        mask = pd.Series([False] * len(df))
+                        if name_col:
+                            mask = mask | df[name_col].astype(str).str.lower().str.contains(search)
+                        if id_col:
+                            mask = mask | df[id_col].astype(str).str.lower().str.contains(search)
+                        return df[mask]
+            return df
+
+        # Filter and populate main view
+        df = filter_df(self.manager.candidates)
         if not df.empty:
             self.setup_tree_columns(self.main_tree, df)
             self.populate_tree(self.main_tree, df)
-        # Populate hired candidate tabs
+
+        # Filter and populate dismissed view
+        df = filter_df(self.manager.dismissed_candidates)
+        if not df.empty:
+            self.setup_tree_columns(self.dismissed_tree, df)
+            self.populate_tree(self.dismissed_tree, df)
+
+        # Filter and populate hired views
         for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
             tree_name = f"{decision.lower().replace(' ', '_').replace("'", '')}_tree"
             if hasattr(self, tree_name):
                 tree = getattr(self, tree_name)
-                # Clear the tree
                 for item in tree.get_children():
                     tree.delete(item)
-                df = self.manager.hired_candidates[decision]
+                df = filter_df(self.manager.hired_candidates[decision])
                 if not df.empty:
                     self.setup_tree_columns(tree, df)
                     self.populate_tree(tree, df)
+
         self.update_tab_labels()  # Update tab labels after refreshing treeviews
 
     def setup_tree_columns(self, tree, df):
@@ -303,9 +317,23 @@ class TAManagementSystem:
         text_widget.insert(tk.END, details)
         text_widget.config(state=tk.DISABLED)
 
+    def get_current_tree(self):
+        current_tab = self.notebook.select()
+        for key, frame in self.tab_indices.items():
+            if str(frame) == str(current_tab):
+                if key == 'main':
+                    return self.main_tree
+                elif key == 'dismissed':
+                    return self.dismissed_tree
+                else:
+                    return getattr(self, f"{key.lower().replace(' ', '_').replace("'", '')}_tree")
+        return None
+
     def apply_sort(self):
-        if self.manager.candidates.empty:
+        current_tree = self.get_current_tree()
+        if not current_tree:
             return
+
         sort_columns = []
         ascending_order = []
         if self.sort_vars['CGPA'].get():
@@ -320,9 +348,27 @@ class TAManagementSystem:
         if self.sort_vars['Interview Score'].get():
             sort_columns.append('Interview Score')
             ascending_order.append(False)
-        self.manager.sort_candidates(sort_columns, ascending_order)
+
+        # Get the appropriate DataFrame based on current tab
+        current_tab = self.notebook.select()
+        for key, frame in self.tab_indices.items():
+            if str(frame) == str(current_tab):
+                if key == 'main':
+                    df = self.manager.candidates
+                    if not df.empty and sort_columns:
+                        self.manager.candidates = df.sort_values(by=sort_columns, ascending=ascending_order)
+                elif key == 'dismissed':
+                    df = self.manager.dismissed_candidates
+                    if not df.empty and sort_columns:
+                        self.manager.dismissed_candidates = df.sort_values(by=sort_columns, ascending=ascending_order)
+                else:
+                    df = self.manager.hired_candidates[key]
+                    if not df.empty and sort_columns:
+                        self.manager.hired_candidates[key] = df.sort_values(by=sort_columns, ascending=ascending_order)
+                break
+
         self.refresh_treeview()
-        messagebox.showinfo("Success", "Candidates sorted successfully")
+        messagebox.showinfo("Success", "Items sorted successfully")
 
     def save_state(self):
         try:
