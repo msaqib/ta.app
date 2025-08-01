@@ -20,17 +20,26 @@ class TAManagementSystem:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
+        self.tab_indices = {}  # Store tab indices for updating labels
+
         self.main_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.main_frame, text="Available Candidates")
+        self.tab_indices['main'] = self.main_frame
+        # self.notebook.add(self.main_frame, text="Available Candidates")
+        # self.tab_indices['main'] = self.main_frame
         self.create_main_tab()
 
         self.dismissed_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.dismissed_frame, text="Dismissed Candidates")
+        self.tab_indices['dismissed'] = self.dismissed_frame
+        # dismissed_tab_idx = self.notebook.index(self.notebook.add(self.dismissed_frame, text="Dismissed Candidates"))
+        # self.tab_indices['dismissed'] = self.dismissed_frame
         self.create_dismissed_tab()
 
         for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
             frame = ttk.Frame(self.notebook)
             self.notebook.add(frame, text=decision)
+            self.tab_indices[decision] = frame
             self.create_hired_tab(frame, decision)
 
     def create_main_tab(self):
@@ -99,9 +108,9 @@ class TAManagementSystem:
 
     def create_context_menu(self):
         self.context_menu = tk.Menu(self.root, tearoff=0)
-        self.context_menu.add_command(label="Add Interview Score", command=self.add_interview_score)
-        self.context_menu.add_command(label="Make Decision", command=self.make_decision)
-        self.context_menu.add_command(label="Dismiss Candidate", command=self.dismiss_candidate)
+        self.context_menu.add_command(label="Add Interview Score...", command=self.add_interview_score)
+        self.context_menu.add_command(label="Make Decision...", command=self.make_decision)
+        self.context_menu.add_command(label="Dismiss Candidate...", command=self.dismiss_candidate)
         self.context_menu.add_command(label="View Details", command=self.view_details)
         self.main_tree.bind("<Button-3>", self.show_context_menu)
 
@@ -175,6 +184,7 @@ class TAManagementSystem:
                 if not df.empty:
                     self.setup_tree_columns(tree, df)
                     self.populate_tree(tree, df)
+        self.update_tab_labels()  # Update tab labels after refreshing treeviews
 
     def setup_tree_columns(self, tree, df):
         tree['columns'] = ()
@@ -359,3 +369,24 @@ class TAManagementSystem:
 
     def on_search_change(self, event=None):
         self.refresh_treeview()
+
+    def update_tab_labels(self):
+        # Available Candidates
+        count = len(self.manager.candidates)
+        if count > 0:
+            self.notebook.tab(self.tab_indices['main'], text=f"Available Candidates ({count})")
+        else:
+            self.notebook.tab(self.tab_indices['main'], text="Available Candidates")
+        # Dismissed Candidates
+        count = len(self.manager.dismissed_candidates)
+        if count > 0:
+            self.notebook.tab(self.tab_indices['dismissed'], text=f"Dismissed Candidates ({count})")
+        else:
+            self.notebook.tab(self.tab_indices['dismissed'], text="Dismissed Candidates")
+        # Hired Candidates
+        for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
+            count = len(self.manager.hired_candidates[decision])
+            if count > 0:
+                self.notebook.tab(self.tab_indices[decision], text=f"{decision} ({count})")
+            else:
+                self.notebook.tab(self.tab_indices[decision], text=f"{decision}")

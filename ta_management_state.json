@@ -1084,25 +1084,6 @@
       "Status": "Available"
     },
     {
-      "Timestamp": "12/07/2025 21:41:25",
-      "Full name": "Shahab Ud Din",
-      "Roll number": "27100124",
-      "Current CGPA": 3.69,
-      "If you have declared a major, please specify": "CS",
-      "Grade in CS 200": "A",
-      "Grade in CS 202 (if taken)": "B+",
-      "Would you be able to attend the lectures? MW 11 am to 12:15 pm": "Yes",
-      "If you expect a clash with the lecture, please specify the day and duration and timing. For example, Wednesday: 30 minutes, 11 am to 11:30 am.": NaN,
-      "Would you be able to attend the lab? Fri 2 pm to 4:50 pm": "Yes",
-      "If you have a clash with the lab, please specify the duration and timing. For example, 30 minutes 3 pm to 3:30 pm.": NaN,
-      "Mention any potential conflict of interest (Close friends, relatives, significant others). Otherwise, write \"No\"": "No",
-      "If you have any prior experience TA'ing, please mention which course. Otherwise, write \"No\"": "No",
-      "Why do you wish to TA this course?": "I have a strong foundation in programming concepts and have worked hard throughout this course to improve and advance my skills. Now, I want to support my juniors so they don\u2019t struggle with the same concepts I found challenging. I also believe that teaching is a source of learning, which is why I am very passionate about becoming a TA for this course.",
-      "Interview Score": 10.0,
-      "Decision": "",
-      "Status": "Available"
-    },
-    {
       "Timestamp": "15/07/2025 14:57:02",
       "Full name": "Sohaib Amir",
       "Roll number": "28100215",
@@ -1502,6 +1483,25 @@
         "If you have any prior experience TA'ing, please mention which course. Otherwise, write \"No\"": "No",
         "Why do you wish to TA this course?": "I would love to enhance my personal and professional skillset, and have an opportunity to work closely with the Computer Science department. I have always been fond of computer programming, and am really looking forward to helping other students achieve the same passion for coding. I myself was very fond of this course when I took it, and am excited to provide an enriching experience for those who will take it in the upcoming semester. I am a firm believer in the fact that algorithms should never be memorized, rather a concept oriented understanding regarding programming is crucial to be able to excel in this subject.",
         "Interview Score": "",
+        "Decision": "Strong Hire",
+        "Status": "Decided"
+      },
+      {
+        "Timestamp": "12/07/2025 21:41:25",
+        "Full name": "Shahab Ud Din",
+        "Roll number": "27100124",
+        "Current CGPA": 3.69,
+        "If you have declared a major, please specify": "CS",
+        "Grade in CS 200": "A",
+        "Grade in CS 202 (if taken)": "B+",
+        "Would you be able to attend the lectures? MW 11 am to 12:15 pm": "Yes",
+        "If you expect a clash with the lecture, please specify the day and duration and timing. For example, Wednesday: 30 minutes, 11 am to 11:30 am.": NaN,
+        "Would you be able to attend the lab? Fri 2 pm to 4:50 pm": "Yes",
+        "If you have a clash with the lab, please specify the duration and timing. For example, 30 minutes 3 pm to 3:30 pm.": NaN,
+        "Mention any potential conflict of interest (Close friends, relatives, significant others). Otherwise, write \"No\"": "No",
+        "If you have any prior experience TA'ing, please mention which course. Otherwise, write \"No\"": "No",
+        "Why do you wish to TA this course?": "I have a strong foundation in programming concepts and have worked hard throughout this course to improve and advance my skills. Now, I want to support my juniors so they don\u2019t struggle with the same concepts I found challenging. I also believe that teaching is a source of learning, which is why I am very passionate about becoming a TA for this course.",
+        "Interview Score": 10.0,
         "Decision": "Strong Hire",
         "Status": "Decided"
       }
