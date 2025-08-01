@@ -81,30 +81,37 @@ class TAManagementSystem:
         self.create_treeview(self.dismissed_frame, "dismissed")
 
     def create_hired_tab(self, parent_frame, decision):
-        tree_frame = ttk.Frame(parent_frame)
-        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        tree = ttk.Treeview(tree_frame)
-        tree.pack(fill=tk.BOTH, expand=True)
-        setattr(self, f"{decision.lower().replace(' ', '_').replace("'", '')}_tree", tree)
-        v_scroll = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=tree.yview)
-        v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        tree.configure(yscrollcommand=v_scroll.set)
-        h_scroll = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL, command=tree.xview)
-        h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
-        tree.configure(xscrollcommand=h_scroll.set)
+        # Use the same create_treeview method for consistency
+        tree = self.create_treeview(parent_frame, decision.lower().replace(' ', '_').replace("'", ''))
+
 
     def create_treeview(self, parent, tree_type):
-        tree_frame = ttk.Frame(parent)
-        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        tree = ttk.Treeview(tree_frame)
-        tree.pack(fill=tk.BOTH, expand=True)
-        setattr(self, f"{tree_type}_tree", tree)
-        v_scroll = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=tree.yview)
-        v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        # Create a container frame
+        container_frame = ttk.Frame(parent)
+        container_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Create the tree and scrollbars
+        tree = ttk.Treeview(container_frame)
+        
+        # Create vertical scrollbar
+        v_scroll = ttk.Scrollbar(container_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=v_scroll.set)
-        h_scroll = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL, command=tree.xview)
-        h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # Create horizontal scrollbar
+        h_scroll = ttk.Scrollbar(container_frame, orient=tk.HORIZONTAL, command=tree.xview)
         tree.configure(xscrollcommand=h_scroll.set)
+        
+        # Grid layout for proper scrollbar behavior
+        tree.grid(row=0, column=0, sticky='nsew')
+        v_scroll.grid(row=0, column=1, sticky='ns')
+        h_scroll.grid(row=1, column=0, sticky='ew')
+        
+        # Configure grid weights
+        container_frame.grid_rowconfigure(0, weight=1)
+        container_frame.grid_columnconfigure(0, weight=1)
+        
+        setattr(self, f"{tree_type}_tree", tree)
+        return tree
 
     def create_context_menu(self):
         self.context_menu = tk.Menu(self.root, tearoff=0)
