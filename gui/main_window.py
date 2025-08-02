@@ -386,39 +386,76 @@ class TAManagementSystem:
             messagebox.showerror("Error", f"Failed to load state: {str(e)}")
 
     def on_treeview_column_click(self, tree, col):
-        # Determine which DataFrame to sort
-        if tree == self.main_tree:
-            df = self.manager.candidates
-            # Toggle sort order
-            ascending = getattr(self, 'main_tree_sort_ascending', {}).get(col, True)
-            self.manager.candidates = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
-            self.refresh_treeview()
-            # Store the toggled order for next click
-            if not hasattr(self, 'main_tree_sort_ascending'):
-                self.main_tree_sort_ascending = {}
-            self.main_tree_sort_ascending[col] = not ascending
-        elif tree == self.dismissed_tree:
-            df = self.manager.dismissed_candidates
-            ascending = getattr(self, 'dismissed_tree_sort_ascending', {}).get(col, True)
-            self.manager.dismissed_candidates = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
-            self.refresh_treeview()
-            if not hasattr(self, 'dismissed_tree_sort_ascending'):
-                self.dismissed_tree_sort_ascending = {}
-            self.dismissed_tree_sort_ascending[col] = not ascending
-        else:
-            # For hired trees
-            for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
-                tree_name = f"{decision.lower().replace(' ', '_').replace("'", '')}_tree"
-                if hasattr(self, tree_name) and tree == getattr(self, tree_name):
-                    df = self.manager.hired_candidates[decision]
-                    attr_name = f"{tree_name}_sort_ascending"
-                    ascending = getattr(self, attr_name, {}).get(col, True)
-                    self.manager.hired_candidates[decision] = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
-                    self.refresh_treeview()
-                    if not hasattr(self, attr_name):
-                        setattr(self, attr_name, {})
-                    getattr(self, attr_name)[col] = not ascending
-                    break
+        try:
+            # Determine which DataFrame to sort
+            if tree == self.main_tree:
+                df = self.manager.candidates
+                ascending = getattr(self, 'main_tree_sort_ascending', {}).get(col, True)
+                try:
+                    self.manager.candidates = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
+                except TypeError as e:
+                    # Get the problematic values and their corresponding candidate names
+                    problematic_rows = df[pd.to_numeric(df[col], errors='coerce').isna() & df[col].notna()]
+                    if not problematic_rows.empty:
+                        names = problematic_rows['Full name'].tolist()[:2]  # Get first two problematic names
+                        message = f"Cannot compare values for candidates:\n{' and '.join(names)}\n\nColumn: {col}"
+                        messagebox.showerror("Sorting Error", message)
+                        return
+                    raise e  # Re-raise if we couldn't identify the problematic rows
+                
+                self.refresh_treeview()
+                if not hasattr(self, 'main_tree_sort_ascending'):
+                    self.main_tree_sort_ascending = {}
+                self.main_tree_sort_ascending[col] = not ascending
+
+            elif tree == self.dismissed_tree:
+                df = self.manager.dismissed_candidates
+                ascending = getattr(self, 'dismissed_tree_sort_ascending', {}).get(col, True)
+                try:
+                    self.manager.dismissed_candidates = df.sort_values(by=col, ascending=ascending).reset_index(drop=True)
+                except TypeError as e:
+                    problematic_rows = df[pd.to_numeric(df[col], errors='coerce').isna() & df[col].notna()]
+                    if not problematic_rows.empty:
+                        names = problematic_rows['Full name'].tolist()[:2]
+                        message = f"Cannot compare values for candidates:\n{' and '.join(names)}\n\nColumn: {col}"
+                        messagebox.showerror("Sorting Error", message)
+                        return
+                    raise e
+
+                self.refresh_treeview()
+                if not hasattr(self, 'dismissed_tree_sort_ascending'):
+                    self.dismissed_tree_sort_ascending = {}
+                self.dismissed_tree_sort_ascending[col] = not ascending
+
+            else:
+                # For hired trees
+                for decision in ['Strong Hire', 'Hire', 'Weak Hire', "Don't Hire"]:
+                    tree_name = f"{decision.lower().replace(' ', '_').replace("'", '')}_tree"
+                    if hasattr(self, tree_name) and tree == getattr(self, tree_name):
+                        df = self.manager.hired_candidates[decision]
+                        attr_name = f"{tree_name}_sort_ascending"
+                        ascending = getattr(self, attr_name, {}).get(col, True)
+                        try:
+                            self.manager.hired_candidates[decision] = df.sort_values(
+                                by=col, ascending=ascending).reset_index(drop=True)
+                        except TypeError as e:
+                            problematic_rows = df[pd.to_numeric(df[col], errors='coerce').isna() & df[col].notna()]
+                            if not problematic_rows.empty:
+                                names = problematic_rows['Full name'].tolist()[:2]
+                                message = f"Cannot compare values for candidates:\n{' and '.join(names)}\n\nColumn: {col}"
+                                messagebox.showerror("Sorting Error", message)
+                                return
+                            raise e
+
+                        self.refresh_treeview()
+                        if not hasattr(self, attr_name):
+                            setattr(self, attr_name, {})
+                        getattr(self, attr_name)[col] = not ascending
+                        break
+
+        except Exception as e:
+            messagebox.showerror("Sorting Error", 
+                f"An unexpected error occurred while sorting column '{col}':\n\n{str(e)}")
 
     def on_search_change(self, event=None):
         self.refresh_treeview()
